@@ -137,12 +137,28 @@ class Sequential(nn.Module, metaclass=AlgoMeta):
             self.experiment_dir, f"task{task_id}_model.pth"
         )
 
+        # 智能处理多进程配置
+        num_workers = self.cfg.train.num_workers
+        persistent_workers = True
+        use_multiprocess_safe = getattr(self.cfg.train, 'use_multiprocess_safe_dataset', True)
+        
+        # 如果数据集不是多进程安全的，强制使用单进程
+        if not use_multiprocess_safe:
+            num_workers = 0
+            persistent_workers = False
+            print(f"[warning] 检测到非多进程安全的数据集，强制使用 num_workers=0")
+        elif hasattr(dataset, 'sequence_dataset') and not hasattr(dataset, '_worker_id'):
+            # 检测到可能是原始的 SequenceVLDataset，强制单进程
+            num_workers = 0
+            persistent_workers = False
+            print(f"[warning] 检测到可能包含 h5py 句柄的数据集，强制使用 num_workers=0")
+        
         train_dataloader = DataLoader(
             dataset,
             batch_size=self.cfg.train.batch_size,
-            num_workers=self.cfg.train.num_workers,
+            num_workers=num_workers,
             sampler=RandomSampler(dataset),
-            persistent_workers=True,
+            persistent_workers=persistent_workers,
         )
 
         prev_success_rate = -1.0

@@ -204,10 +204,19 @@ def evaluate_loss(cfg, algo, benchmark, datasets):
         if cfg.lifelong.algo == "PackNet":  # need preprocess weights for PackNet
             algo = algo.get_eval_algo(task_id=i)
 
+        # 检查是否需要禁用多进程（针对非多进程安全的数据集）
+        num_workers = cfg.eval.num_workers
+        use_multiprocess_safe = getattr(cfg.train, 'use_multiprocess_safe_dataset', True)
+        
+        # 如果数据集不是多进程安全的，强制使用单进程
+        if not use_multiprocess_safe and hasattr(dataset, 'sequence_dataset'):
+            num_workers = 0
+            print(f"[warning] 检测到非多进程安全的数据集，强制使用 num_workers=0")
+        
         dataloader = DataLoader(
             dataset,
             batch_size=cfg.eval.batch_size,
-            num_workers=cfg.eval.num_workers,
+            num_workers=num_workers,
             shuffle=False,
         )
         test_loss = 0

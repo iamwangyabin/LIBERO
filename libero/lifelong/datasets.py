@@ -7,6 +7,14 @@ from PIL import Image
 from robomimic.utils.dataset import SequenceDataset
 from torch.utils.data import Dataset
 
+# 导入多进程安全的数据集包装器
+from .multiprocess_safe_dataset import (
+    MultiprocessSafeDatasetWrapper,
+    MultiprocessSafeGroupedTaskDataset,
+    create_multiprocess_safe_dataset,
+    create_multiprocess_safe_grouped_dataset
+)
+
 """
     Helper function from Robomimic to read hdf5 demonstrations into sequence dataset
 
@@ -57,6 +65,70 @@ def get_dataset(
         filter_by_attribute=filter_key,  # can optionally provide a filter key here
     )
     return dataset, shape_meta
+
+
+def get_multiprocess_safe_dataset(
+    dataset_path,
+    obs_modality,
+    task_emb=None,
+    initialize_obs_utils=True,
+    seq_len=1,
+    frame_stack=1,
+    filter_key=None,
+    hdf5_cache_mode="low_dim",
+    *args,
+    **kwargs
+):
+    """
+    创建多进程安全的数据集，解决 h5py 对象无法被 pickle 的问题。
+    
+    Args:
+        dataset_path: 数据集文件路径
+        obs_modality: 观察模态配置
+        task_emb: 任务嵌入向量（可选）
+        其他参数与 get_dataset 相同
+    
+    Returns:
+        MultiprocessSafeDatasetWrapper: 多进程安全的数据集包装器
+        shape_meta: 形状元数据
+    """
+    # 获取形状元数据
+    if initialize_obs_utils:
+        ObsUtils.initialize_obs_utils_with_obs_specs({"obs": obs_modality})
+
+    all_obs_keys = []
+    for modality_name, modality_list in obs_modality.items():
+        all_obs_keys += modality_list
+    shape_meta = FileUtils.get_shape_metadata_from_dataset(
+        dataset_path=dataset_path, all_obs_keys=all_obs_keys, verbose=False
+    )
+    
+    # 创建数据集配置
+    dataset_config = {
+        'dataset_path': dataset_path,
+        'obs_modality': obs_modality,
+        'initialize_obs_utils': False,  # 已经初始化过了
+        'seq_len': seq_len,
+        'frame_stack': frame_stack,
+        'filter_key': filter_key,
+        'hdf5_cache_mode': hdf5_cache_mode,
+        **kwargs
+    }
+    
+    # 创建多进程安全的数据集
+    safe_dataset = create_multiprocess_safe_dataset(
+        dataset_path=dataset_path,
+        obs_modality=obs_modality,
+        task_emb=task_emb,
+        initialize_obs_utils=False,
+        seq_len=seq_len,
+        frame_stack=frame_stack,
+        filter_key=filter_key,
+        hdf5_cache_mode=hdf5_cache_mode,
+        **kwargs
+    )
+    
+    return safe_dataset, shape_meta
 
 
 class SequenceVLDataset(Dataset):

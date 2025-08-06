@@ -21,7 +21,13 @@ from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
 from libero.lifelong.algos import get_algo_class, get_algo_list
 from libero.lifelong.models import get_policy_list
-from libero.lifelong.datasets import GroupedTaskDataset, SequenceVLDataset, get_dataset
+from libero.lifelong.datasets import (
+    GroupedTaskDataset,
+    SequenceVLDataset,
+    get_dataset,
+    get_multiprocess_safe_dataset,
+    create_multiprocess_safe_grouped_dataset
+)
 from libero.lifelong.metric import evaluate_loss, evaluate_success
 from libero.lifelong.utils import (
     NpEncoder,
@@ -69,14 +75,29 @@ def main(hydra_cfg):
     for i in range(n_manip_tasks):
         # currently we assume tasks from same benchmark have the same shape_meta
         try:
-            task_i_dataset, shape_meta = get_dataset(
-                dataset_path=os.path.join(
-                    cfg.folder, benchmark.get_task_demonstration(i)
-                ),
-                obs_modality=cfg.data.obs.modality,
-                initialize_obs_utils=(i == 0),
-                seq_len=cfg.data.seq_len,
-            )
+            # 检查是否启用多进程安全模式
+            use_multiprocess_safe = getattr(cfg.train, 'use_multiprocess_safe_dataset', True)
+            
+            if use_multiprocess_safe and cfg.train.num_workers > 0:
+                # 使用多进程安全的数据集
+                task_i_dataset, shape_meta = get_multiprocess_safe_dataset(
+                    dataset_path=os.path.join(
+                        cfg.folder, benchmark.get_task_demonstration(i)
+                    ),
+                    obs_modality=cfg.data.obs.modality,
+                    initialize_obs_utils=(i == 0),
+                    seq_len=cfg.data.seq_len,
+                )
+            else:
+                # 使用原始数据集（单进程模式）
+                task_i_dataset, shape_meta = get_dataset(
+                    dataset_path=os.path.join(
+                        cfg.folder, benchmark.get_task_demonstration(i)
+                    ),
+                    obs_modality=cfg.data.obs.modality,
+                    initialize_obs_utils=(i == 0),
+                    seq_len=cfg.data.seq_len,
+                )
         except Exception as e:
             print(
                 f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
@@ -92,10 +113,16 @@ def main(hydra_cfg):
     benchmark.set_task_embs(task_embs)
 
     gsz = cfg.data.task_group_size
+    use_multiprocess_safe = getattr(cfg.train, 'use_multiprocess_safe_dataset', True)
+    
     if gsz == 1:  # each manipulation task is its own lifelong learning task
-        datasets = [
-            SequenceVLDataset(ds, emb) for (ds, emb) in zip(manip_datasets, task_embs)
-        ]
+        # 对于多进程安全的数据集，不需要再包装 SequenceVLDataset
+        if use_multiprocess_safe and cfg.train.num_workers > 0:
+            datasets = manip_datasets  # 已经包含了 task_emb
+        else:
+            datasets = [
+                SequenceVLDataset(ds, emb) for (ds, emb) in zip(manip_datasets, task_embs)
+            ]
         n_demos = [data.n_demos for data in datasets]
         n_sequences = [data.total_num_sequences for data in datasets]
     else:  # group gsz manipulation tasks into a lifelong task, currently not used
@@ -105,15 +132,36 @@ def main(hydra_cfg):
         datasets = []
         n_demos = []
         n_sequences = []
-        for i in range(0, n_manip_tasks, gsz):
-            dataset = GroupedTaskDataset(
-                manip_datasets[i : i + gsz], task_embs[i : i + gsz]
-            )
-            datasets.append(dataset)
-            n_demos.extend([x.n_demos for x in dataset.sequence_datasets])
-            n_sequences.extend(
-                [x.total_num_sequences for x in dataset.sequence_datasets]
-            )
+        
+        if use_multiprocess_safe and cfg.train.num_workers > 0:
+            # 使用多进程安全的分组数据集
+            for i in range(0, n_manip_tasks, gsz):
+                dataset_paths = [
+                    os.path.join(cfg.folder, benchmark.get_task_demonstration(j))
+                    for j in range(i, i + gsz)
+                ]
+                dataset = create_multiprocess_safe_grouped_dataset(
+                    dataset_paths=dataset_paths,
+                    obs_modality=cfg.data.obs.modality,
+                    task_embs=task_embs[i : i + gsz],
+                    seq_len=cfg.data.seq_len,
+                )
+                datasets.append(dataset)
+                n_demos.extend([x.n_demos for x in dataset.sequence_datasets])
+                n_sequences.extend(
+                    [x.total_num_sequences for x in dataset.sequence_datasets]
+                )
+        else:
+            # 使用原始分组数据集
+            for i in range(0, n_manip_tasks, gsz):
+                dataset = GroupedTaskDataset(
+                    manip_datasets[i : i + gsz], task_embs[i : i + gsz]
+                )
+                datasets.append(dataset)
+                n_demos.extend([x.n_demos for x in dataset.sequence_datasets])
+                n_sequences.extend(
+                    [x.total_num_sequences for x in dataset.sequence_datasets]
+                )
 
     n_tasks = n_manip_tasks // gsz  # number of lifelong learning tasks
     print("\n=================== Lifelong Benchmark Information  ===================")
