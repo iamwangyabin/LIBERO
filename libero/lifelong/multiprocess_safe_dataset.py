@@ -11,7 +11,6 @@ import os
 import pickle
 from typing import Any, Dict, Optional
 from torch.utils.data import Dataset
-from libero.lifelong.datasets import get_dataset, SequenceVLDataset, GroupedTaskDataset
 
 
 class MultiprocessSafeDatasetWrapper(Dataset):
@@ -46,6 +45,7 @@ class MultiprocessSafeDatasetWrapper(Dataset):
         """初始化底层数据集实例"""
         if self._dataset is None:
             # 重新创建数据集
+            from libero.lifelong.datasets import get_dataset, SequenceVLDataset
             sequence_dataset, _ = get_dataset(**self.dataset_config)
             
             if self.task_emb is not None:
@@ -134,6 +134,7 @@ class MultiprocessSafeGroupedTaskDataset(Dataset):
     def _init_datasets(self):
         """初始化底层数据集实例"""
         if self._datasets is None:
+            from libero.lifelong.datasets import get_dataset, GroupedTaskDataset
             self._datasets = []
             for config in self.dataset_configs:
                 sequence_dataset, _ = get_dataset(**config)
