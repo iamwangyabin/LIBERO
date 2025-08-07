@@ -123,8 +123,13 @@ def main(hydra_cfg):
             datasets = [
                 SequenceVLDataset(ds, emb) for (ds, emb) in zip(manip_datasets, task_embs)
             ]
-        n_demos = [data.n_demos for data in datasets]
-        n_sequences = [data.total_num_sequences for data in datasets]
+        # 兼容 MultiprocessSafeDatasetWrapper 缺少属性的情况：优先取属性，回退到 len()
+        def _safe_get_n_demos(d):
+            return getattr(d, "n_demos", None) if getattr(d, "n_demos", None) is not None else (getattr(d, "get_num_demos", None)() if hasattr(d, "get_num_demos") else len(d))
+        def _safe_get_total_num_sequences(d):
+            return getattr(d, "total_num_sequences", None) if getattr(d, "total_num_sequences", None) is not None else (getattr(d, "get_total_num_sequences", None)() if hasattr(d, "get_total_num_sequences") else len(d))
+        n_demos = [_safe_get_n_demos(data) for data in datasets]
+        n_sequences = [_safe_get_total_num_sequences(data) for data in datasets]
     else:  # group gsz manipulation tasks into a lifelong task, currently not used
         assert (
             n_manip_tasks % gsz == 0
