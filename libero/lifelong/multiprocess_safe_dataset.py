@@ -88,38 +88,37 @@ class MultiprocessSafeDatasetWrapper(Dataset):
             sample['task_emb'] = self.task_emb
             
         return sample
-+
-+    # 透传底层数据集的属性，兼容上层直接访问 n_demos / total_num_sequences 等
-+    def __getattr__(self, name):
-+        # 避免在初始化阶段的递归调用
-+        if name.startswith("_"):
-+            raise AttributeError(f\"{self.__class__.__name__} has no attribute '{name}'\")
-+        # 对于常见统计属性，优先从预缓存或可计算值提供回退
-+        if name == "n_demos":
-+            # 如果底层未初始化，或没有该属性，则退回到长度
-+            return getattr(self._dataset, "n_demos", None) if self._dataset is not None and hasattr(self._dataset, "n_demos") else self.__len__()
-+        if name == "total_num_sequences":
-+            return getattr(self._dataset, "total_num_sequences", None) if self._dataset is not None and hasattr(self._dataset, "total_num_sequences") else self.__len__()
-+        # 其他属性透传到底层数据集（按需延迟初始化）
-+        self._ensure_dataset_initialized()
-+        if self._dataset is not None and hasattr(self._dataset, name):
-+            return getattr(self._dataset, name)
-+        raise AttributeError(f\"{self.__class__.__name__} has no attribute '{name}'\")
-+
-+    def __dir__(self):
-+        base = set(super().__dir__())
-+        if self._dataset is not None:
-+            base.update(dir(self._dataset))
-+        # 补充常见统计属性，便于交互探索
-+        base.update({"n_demos", "total_num_sequences"})
-+        return sorted(base)
-+
-+    def __getstate__(self):
-+        """自定义 pickle 序列化，排除不可序列化的对象"""
-+        state = self.__dict__.copy()
-+        # 移除不可序列化的数据集实例
-+        state['_dataset'] = None
-+        return state
+    # 透传底层数据集的属性，兼容上层直接访问 n_demos / total_num_sequences 等
+    def __getattr__(self, name):
+        # 避免在初始化阶段的递归调用
+        if name.startswith("_"):
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
+        # 对于常见统计属性，优先从预缓存或可计算值提供回退
+        if name == "n_demos":
+            # 如果底层未初始化，或没有该属性，则退回到长度
+            return getattr(self._dataset, "n_demos", None) if self._dataset is not None and hasattr(self._dataset, "n_demos") else self.__len__()
+        if name == "total_num_sequences":
+            return getattr(self._dataset, "total_num_sequences", None) if self._dataset is not None and hasattr(self._dataset, "total_num_sequences") else self.__len__()
+        # 其他属性透传到底层数据集（按需延迟初始化）
+        self._ensure_dataset_initialized()
+        if self._dataset is not None and hasattr(self._dataset, name):
+            return getattr(self._dataset, name)
+        raise AttributeError(f"{self.__class__.__name__} has no attribute '{name}'")
+
+    def __dir__(self):
+        base = set(super().__dir__())
+        if self._dataset is not None:
+            base.update(dir(self._dataset))
+        # 补充常见统计属性，便于交互探索
+        base.update({"n_demos", "total_num_sequences"})
+        return sorted(base)
+
+    def __getstate__(self):
+        """自定义 pickle 序列化，排除不可序列化的对象"""
+        state = self.__dict__.copy()
+        # 移除不可序列化的数据集实例
+        state['_dataset'] = None
+        return state
     
     def __setstate__(self, state):
         """自定义 pickle 反序列化"""
