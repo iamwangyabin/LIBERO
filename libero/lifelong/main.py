@@ -1,6 +1,15 @@
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["WANDB_MODE"] = "offline"
+
+# Suppress deprecation warnings from external libraries
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="thop")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="thop.profile")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="robomimic")
+warnings.filterwarnings("ignore", category=UserWarning, module="torch", message=".*torch.meshgrid.*")
+
 import sys
 import json
 import multiprocessing
@@ -32,6 +41,8 @@ from libero.lifelong.utils import (
     create_experiment_dir,
     get_task_embs,
 )
+import swanlab
+
 
 
 @hydra.main(config_path="../configs", config_name="config", version_base=None)
@@ -132,8 +143,8 @@ def main(hydra_cfg):
     cfg.shape_meta = shape_meta
 
     if cfg.use_wandb:
-        wandb.init(project="libero", config=cfg)
-        wandb.run.name = cfg.experiment_name
+        swanlab.sync_wandb()
+        wandb.init(project="libero", config=cfg， name=cfg.experiment_name)
 
     result_summary = {
         "L_conf_mat": np.zeros((n_manip_tasks, n_manip_tasks)),  # loss confusion matrix

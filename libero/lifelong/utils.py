@@ -3,7 +3,8 @@ import json
 import os
 import random
 from pathlib import Path
-
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="thop")
 import numpy as np
 import robomimic.utils.tensor_utils as TensorUtils
 import torch
