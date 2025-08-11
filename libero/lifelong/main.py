@@ -144,7 +144,7 @@ def main(hydra_cfg):
 
     if cfg.use_wandb:
         swanlab.sync_wandb()
-        wandb.init(project="libero", config=cfg， name=cfg.experiment_name)
+        wandb.init(project="libero", config=cfg, name=cfg.experiment_name)
 
     result_summary = {
         "L_conf_mat": np.zeros((n_manip_tasks, n_manip_tasks)),  # loss confusion matrix

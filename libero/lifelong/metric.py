@@ -16,34 +16,67 @@ from libero.libero.utils.video_utils import VideoWriter
 from libero.lifelong.utils import *
 
 
+# def raw_obs_to_tensor_obs(obs, task_emb, cfg):
+#     """
+#     Prepare the tensor observations as input for the algorithm.
+#     """
+#     env_num = len(obs)
+
+#     data = {
+#         "obs": {},
+#         "task_emb": task_emb.repeat(env_num, 1),
+#     }
+
+#     all_obs_keys = []
+#     for modality_name, modality_list in cfg.data.obs.modality.items():
+#         for obs_name in modality_list:
+#             data["obs"][obs_name] = []
+#         all_obs_keys += modality_list
+
+#     for k in range(env_num):
+#         for obs_name in all_obs_keys:
+#             data["obs"][obs_name].append(
+#                 ObsUtils.process_obs(
+#                     torch.from_numpy(obs[k][cfg.data.obs_key_mapping[obs_name]]),
+#                     obs_key=obs_name,
+#                 ).float()
+#             )
+
+#     for key in data["obs"]:
+#         data["obs"][key] = torch.stack(data["obs"][key])
+
+#     data = TensorUtils.map_tensor(data, lambda x: safe_device(x, device=cfg.device))
+#     return data
+
+
 def raw_obs_to_tensor_obs(obs, task_emb, cfg):
     """
     Prepare the tensor observations as input for the algorithm.
+    This is an optimized version that vectorizes the observation processing.
     """
     env_num = len(obs)
+    # Get all observation keys from the config using a list comprehension
+    all_obs_keys = [
+        key for modality_list in cfg.data.obs.modality.values() for key in modality_list
+    ]
+
+    # Batch observations from all environments using np.stack for efficiency
+    batched_obs = {
+        key: np.stack([o[cfg.data.obs_key_mapping[key]] for o in obs])
+        for key in all_obs_keys
+    }
 
     data = {
         "obs": {},
         "task_emb": task_emb.repeat(env_num, 1),
     }
 
-    all_obs_keys = []
-    for modality_name, modality_list in cfg.data.obs.modality.items():
-        for obs_name in modality_list:
-            data["obs"][obs_name] = []
-        all_obs_keys += modality_list
-
-    for k in range(env_num):
-        for obs_name in all_obs_keys:
-            data["obs"][obs_name].append(
-                ObsUtils.process_obs(
-                    torch.from_numpy(obs[k][cfg.data.obs_key_mapping[obs_name]]),
-                    obs_key=obs_name,
-                ).float()
-            )
-
-    for key in data["obs"]:
-        data["obs"][key] = torch.stack(data["obs"][key])
+    # Process the entire batch of observations at once, avoiding python loops
+    for obs_name, obs_batch in batched_obs.items():
+        data["obs"][obs_name] = ObsUtils.process_obs(
+            torch.from_numpy(obs_batch),
+            obs_key=obs_name,
+        ).float()
 
     data = TensorUtils.map_tensor(data, lambda x: safe_device(x, device=cfg.device))
     return data
