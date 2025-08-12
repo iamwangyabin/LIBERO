@@ -215,7 +215,7 @@ def main(hydra_cfg):
                 ]
                 wandb.run.summary["fwd_transfer_success"] = result_summary["S_fwd"]
                 wandb.run.summary["fwd_transfer_loss"] = result_summary["L_fwd"]
-                wandb.run.summary.update()
+                wandb.run.summary.update({})
 
             print(("[All task loss ] " + " %4.2f |" * n_tasks) % tuple(L))
             print(("[All task succ.] " + " %4.2f |" * n_tasks) % tuple(S))
@@ -258,7 +258,7 @@ def main(hydra_cfg):
                     ]
                     wandb.run.summary["fwd_transfer_success"] = result_summary["S_fwd"]
                     wandb.run.summary["fwd_transfer_loss"] = result_summary["L_fwd"]
-                    wandb.run.summary.update()
+                    wandb.run.summary.update({})
 
                 print(
                     f"[info] train time (min) {(t1-t0)/60:.1f} "
