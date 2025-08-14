@@ -257,7 +257,7 @@ class PackNet(Sequential):
         )
         eval_algo = safe_device(
             eval(self.cfg.lifelong.algo)(
-                eval(self.cfg.benchmark_name)().n_tasks, self.cfg
+                get_benchmark(self.cfg.benchmark_name)().n_tasks, self.cfg
             ),
             self.cfg.device,
         )
