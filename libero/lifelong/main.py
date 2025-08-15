@@ -1,8 +1,8 @@
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["WANDB_MODE"] = "offline"
-
+# os.environ["WANDB_MODE"] = "offline"
+os.environ["WANDB_BASE_URL"] = "https://api.wandb-cn.top"
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="thop")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="thop.profile")
