@@ -40,7 +40,6 @@ from libero.lifelong.utils import (
     create_experiment_dir,
     get_task_embs,
 )
-import swanlab
 
 
 
@@ -85,6 +84,7 @@ def main(hydra_cfg):
                 ),
                 obs_modality=cfg.data.obs.modality,
                 initialize_obs_utils=(i == 0),
+                # ObsUtils.initialize_obs_utils_with_obs_specs({"obs": cfg.data.obs.modality})
                 seq_len=cfg.data.seq_len,
             )
         except Exception as e:
@@ -142,7 +142,9 @@ def main(hydra_cfg):
     cfg.shape_meta = shape_meta
 
     if cfg.use_wandb:
-        swanlab.init(project="libero", config=cfg, name=cfg.experiment_name)
+        # swanlab.init(project="libero", config=cfg, name=cfg.experiment_name)
+        wandb.init(project="libero", config=cfg)
+        wandb.run.name = cfg.experiment_name
 
     result_summary = {
         "L_conf_mat": np.zeros((n_manip_tasks, n_manip_tasks)),  # loss confusion matrix
@@ -204,13 +206,24 @@ def main(hydra_cfg):
             result_summary["L_conf_mat"][-1] = L
             result_summary["S_conf_mat"][-1] = S
 
+            # if cfg.use_wandb:
+            #     swanlab.log({
+            #         "success_confusion_matrix": result_summary["S_conf_mat"],
+            #         "loss_confusion_matrix": result_summary["L_conf_mat"],
+            #         "fwd_transfer_success": result_summary["S_fwd"],
+            #         "fwd_transfer_loss": result_summary["L_fwd"],
+            #     }, step=n_tasks)
+
             if cfg.use_wandb:
-                swanlab.log({
-                    "success_confusion_matrix": result_summary["S_conf_mat"],
-                    "loss_confusion_matrix": result_summary["L_conf_mat"],
-                    "fwd_transfer_success": result_summary["S_fwd"],
-                    "fwd_transfer_loss": result_summary["L_fwd"],
-                }, step=n_tasks)
+                wandb.run.summary["success_confusion_matrix"] = result_summary[
+                    "S_conf_mat"
+                ]
+                wandb.run.summary["loss_confusion_matrix"] = result_summary[
+                    "L_conf_mat"
+                ]
+                wandb.run.summary["fwd_transfer_success"] = result_summary["S_fwd"]
+                wandb.run.summary["fwd_transfer_loss"] = result_summary["L_fwd"]
+                wandb.run.summary.update()
 
             print(("[All task loss ] " + " %4.2f |" * n_tasks) % tuple(L))
             print(("[All task succ.] " + " %4.2f |" * n_tasks) % tuple(S))
@@ -244,13 +257,24 @@ def main(hydra_cfg):
                 result_summary["L_conf_mat"][i][: i + 1] = L
                 result_summary["S_conf_mat"][i][: i + 1] = S
 
+                # if cfg.use_wandb:
+                #     swanlab.log({
+                #         "success_confusion_matrix": result_summary["S_conf_mat"],
+                #         "loss_confusion_matrix": result_summary["L_conf_mat"],
+                #         "fwd_transfer_success": result_summary["S_fwd"],
+                #         "fwd_transfer_loss": result_summary["L_fwd"],
+                #     }, step=i)
+
                 if cfg.use_wandb:
-                    swanlab.log({
-                        "success_confusion_matrix": result_summary["S_conf_mat"],
-                        "loss_confusion_matrix": result_summary["L_conf_mat"],
-                        "fwd_transfer_success": result_summary["S_fwd"],
-                        "fwd_transfer_loss": result_summary["L_fwd"],
-                    }, step=i)
+                    wandb.run.summary["success_confusion_matrix"] = result_summary[
+                        "S_conf_mat"
+                    ]
+                    wandb.run.summary["loss_confusion_matrix"] = result_summary[
+                        "L_conf_mat"
+                    ]
+                    wandb.run.summary["fwd_transfer_success"] = result_summary["S_fwd"]
+                    wandb.run.summary["fwd_transfer_loss"] = result_summary["L_fwd"]
+                    wandb.run.summary.update()                    
 
                 print(
                     f"[info] train time (min) {(t1-t0)/60:.1f} "
