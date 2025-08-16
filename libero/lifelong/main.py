@@ -200,32 +200,22 @@ def main(hydra_cfg):
             result_summary["L_conf_mat"][-1] = L
             result_summary["S_conf_mat"][-1] = S
             if cfg.use_wandb:
-                # wandb.run.summary.update(
-                #     {
-                #     "success_confusion_matrix": result_summary["S_conf_mat"],
-                #     "loss_confusion_matrix": result_summary["L_conf_mat"],
-                #     "fwd_transfer_success": result_summary["S_fwd"],
-                #     "fwd_transfer_loss": result_summary["L_fwd"],
-                # })
-
                 wandb.log({
-                    # 将成功率矩阵可视化为热力图
                     "Success Confusion Matrix": wandb.plots.HeatMap(
                         x_labels=[str(i) for i in range(n_manip_tasks)], 
                         y_labels=[str(i) for i in range(n_manip_tasks)], 
                         matrix_values=result_summary["S_conf_mat"],
                         show_text=True
                     ),
-                    # 将损失矩阵可视化为热力图
                     "Loss Confusion Matrix": wandb.plots.HeatMap(
                         x_labels=[str(i) for i in range(n_manip_tasks)], 
                         y_labels=[str(i) for i in range(n_manip_tasks)], 
                         matrix_values=result_summary["L_conf_mat"],
                         show_text=True
                     ),
-                    "fwd_transfer_success": result_summary["S_fwd"][-1], # 记录标量
-                    "fwd_transfer_loss": result_summary["L_fwd"][-1], # 记录标量
-                })
+                    "fwd_transfer_success": result_summary["S_fwd"][-1],
+                    "fwd_transfer_loss": result_summary["L_fwd"][-1],
+                }, step=i)
 
             print(("[All task loss ] " + " %4.2f |" * n_tasks) % tuple(L))
             print(("[All task succ.] " + " %4.2f |" * n_tasks) % tuple(S))
@@ -260,25 +250,13 @@ def main(hydra_cfg):
                 result_summary["S_conf_mat"][i][: i + 1] = S
 
                 if cfg.use_wandb:
-
-                    # wandb.run.summary.update(
-                    # {
-                    # "success_confusion_matrix": result_summary["S_conf_mat"],
-                    # "loss_confusion_matrix": result_summary["L_conf_mat"],
-                    # "fwd_transfer_success": result_summary["S_fwd"],
-                    # "fwd_transfer_loss": result_summary["L_fwd"],
-                    # })          
-
-                    
                     wandb.log({
-                        # 将成功率矩阵可视化为热力图
                         "Success Confusion Matrix": wandb.plots.HeatMap(
                             x_labels=[str(i) for i in range(n_manip_tasks)], 
                             y_labels=[str(i) for i in range(n_manip_tasks)], 
                             matrix_values=result_summary["S_conf_mat"],
                             show_text=True
                         ),
-                        # 将损失矩阵可视化为热力图
                         "Loss Confusion Matrix": wandb.plots.HeatMap(
                             x_labels=[str(i) for i in range(n_manip_tasks)], 
                             y_labels=[str(i) for i in range(n_manip_tasks)], 
@@ -287,7 +265,7 @@ def main(hydra_cfg):
                         ),
                         "fwd_transfer_success": result_summary["S_fwd"][-1], # 记录标量
                         "fwd_transfer_loss": result_summary["L_fwd"][-1], # 记录标量
-                    })       
+                    }, step=i)
 
                 print(
                     f"[info] train time (min) {(t1-t0)/60:.1f} "
