@@ -141,8 +141,8 @@ def main(hydra_cfg):
         wandb.run.name = cfg.experiment_name
 
     result_summary = {
-        "L_conf_mat": np.full((n_manip_tasks, n_manip_tasks), np.nan),  # loss confusion matrix
-        "S_conf_mat": np.full((n_manip_tasks, n_manip_tasks), np.nan),  # success confusion matrix
+        "L_conf_mat": np.zeros((n_manip_tasks, n_manip_tasks)),  # loss confusion matrix
+        "S_conf_mat": np.zeros((n_manip_tasks, n_manip_tasks)),  # success confusion matrix
         "L_fwd": np.zeros((n_manip_tasks,)),  # loss AUC, how fast the agent learns
         "S_fwd": np.zeros((n_manip_tasks,)),  # success AUC, how fast the agent succeeds
     }
@@ -257,6 +257,7 @@ def main(hydra_cfg):
                             matrix_values=result_summary["S_conf_mat"],
                             show_text=True
                         ),
+
                         "Loss Confusion Matrix": wandb.plots.HeatMap(
                             x_labels=[str(i) for i in range(n_manip_tasks)], 
                             y_labels=[str(i) for i in range(n_manip_tasks)], 
