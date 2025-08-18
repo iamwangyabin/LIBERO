@@ -201,20 +201,20 @@ def main(hydra_cfg):
             result_summary["S_conf_mat"][-1] = S
             if cfg.use_wandb:
                 wandb.log({
-                    "Success Confusion Matrix": wandb.plots.HeatMap(
+                    f"Success Confusion Matrix_{i}": wandb.plots.HeatMap(
                         x_labels=[str(i) for i in range(n_manip_tasks)], 
                         y_labels=[str(i) for i in range(n_manip_tasks)], 
                         matrix_values=result_summary["S_conf_mat"],
                         show_text=True
                     ),
-                    "Loss Confusion Matrix": wandb.plots.HeatMap(
+                    f"Loss Confusion Matrix_{i}": wandb.plots.HeatMap(
                         x_labels=[str(i) for i in range(n_manip_tasks)], 
                         y_labels=[str(i) for i in range(n_manip_tasks)], 
                         matrix_values=result_summary["L_conf_mat"],
                         show_text=True
                     ),
-                    "fwd_transfer_success": result_summary["S_fwd"][-1],
-                    "fwd_transfer_loss": result_summary["L_fwd"][-1],
+                    "fwd_transfer_success": result_summary["S_fwd"][i],
+                    "fwd_transfer_loss": result_summary["L_fwd"][i],
                 }, step=i)
 
             print(("[All task loss ] " + " %4.2f |" * n_tasks) % tuple(L))
@@ -251,21 +251,21 @@ def main(hydra_cfg):
 
                 if cfg.use_wandb:
                     wandb.log({
-                        "Success Confusion Matrix": wandb.plots.HeatMap(
+                        f"Success Confusion Matrix_{i}": wandb.plots.HeatMap(
                             x_labels=[str(i) for i in range(n_manip_tasks)], 
                             y_labels=[str(i) for i in range(n_manip_tasks)], 
                             matrix_values=result_summary["S_conf_mat"],
                             show_text=True
                         ),
 
-                        "Loss Confusion Matrix": wandb.plots.HeatMap(
+                        f"Loss Confusion Matrix_{i}": wandb.plots.HeatMap(
                             x_labels=[str(i) for i in range(n_manip_tasks)], 
                             y_labels=[str(i) for i in range(n_manip_tasks)], 
                             matrix_values=result_summary["L_conf_mat"],
                             show_text=True
                         ),
-                        "fwd_transfer_success": result_summary["S_fwd"][-1], # 记录标量
-                        "fwd_transfer_loss": result_summary["L_fwd"][-1], # 记录标量
+                        "fwd_transfer_success": result_summary["S_fwd"][i], # 记录标量
+                        "fwd_transfer_loss": result_summary["L_fwd"][i], # 记录标量
                     }, step=i)
 
                 print(
