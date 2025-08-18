@@ -59,11 +59,13 @@ class ER(Sequential):
                 DataLoader(
                     buf,
                     batch_size=self.cfg.train.batch_size,
-                    num_workers=self.cfg.train.num_workers,
+                    num_workers=0,
                     sampler=RandomSampler(buf),
-                    persistent_workers=True,
+                    # persistent_workers=True,
                 )
             )
+
+
 
     def end_task(self, dataset, task_id, benchmark):
         self.datasets.append(dataset)
